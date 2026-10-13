@@ -1,0 +1,6 @@
+supabase/functions
+supabase/migrations
+supabase/seed.sql
+supabase/tests
+docs
+pnpm-lock.yaml

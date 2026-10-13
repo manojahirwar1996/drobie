@@ -1,0 +1,13 @@
+{
+  "name": "@drobie/shared",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "lint": "eslint src",
+    "test": "deno test --config ../../supabase/functions/deno.json src"
+  },
+  "dependencies": { "zod": "3.25.76" }
+}
