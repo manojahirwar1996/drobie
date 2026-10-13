@@ -261,6 +261,11 @@ create or replace function server.queue_send(p_queue text, p_message jsonb, p_de
 returns bigint language sql volatile security definer set search_path = ''
 as $$ select pgmq.send(p_queue, p_message, p_delay_seconds) $$;
 
+-- exponential backoff for failed messages: hide the message for p_seconds
+create or replace function server.queue_set_vt(p_queue text, p_msg_id bigint, p_seconds int)
+returns boolean language sql volatile security definer set search_path = ''
+as $$ select exists (select 1 from pgmq.set_vt(p_queue, p_msg_id, p_seconds)) $$;
+
 create or replace function server.queue_delete(p_queue text, p_msg_id bigint)
 returns boolean language sql volatile security definer set search_path = ''
 as $$ select pgmq.delete(p_queue, p_msg_id) $$;
@@ -308,9 +313,9 @@ values
 ('app', 'ai.model_prices', 'Price per million tokens per model, in paise (input, output, cache read, cache write)',
   '{"type":"object","additionalProperties":{"type":"object","required":["input","output"],"properties":{"input":{"type":"number","minimum":0},"output":{"type":"number","minimum":0},"cache_read":{"type":"number","minimum":0},"cache_write":{"type":"number","minimum":0}}}}',
   '{}', 'founder', true, false),
-('app', 'cors.allowed_origins', 'Browser origins allowed to call Edge Functions',
-  '{"type":"array","items":{"type":"string","pattern":"^https?://"}}',
-  '["https://drobie.app","https://admin.drobie.app","http://localhost:3000"]', 'eng', false, false),
+('ai_route', 'dro.chat', 'Model and limits for open dro chat (rules answer first; this is the paid fallback)',
+  '{"type":"object","required":["provider","model","max_tokens"],"additionalProperties":false,"properties":{"provider":{"enum":["anthropic"]},"model":{"type":"string","minLength":3},"max_tokens":{"type":"integer","minimum":16,"maximum":4096},"temperature":{"type":"number","minimum":0,"maximum":1}}}',
+  '{"provider":"anthropic","model":"claude-haiku-5-5","max_tokens":400}', 'founder', true, false),
 ('limit', 'rate.default', 'Default per-user token bucket for Edge Functions',
   '{"type":"object","required":["capacity","refill_per_sec"],"properties":{"capacity":{"type":"number","minimum":1},"refill_per_sec":{"type":"number","exclusiveMinimum":0}}}',
   '{"capacity":60,"refill_per_sec":1}', 'eng', false, false)
