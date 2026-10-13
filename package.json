@@ -1,0 +1,13 @@
+{
+  "name": "drobie",
+  "private": true,
+  "packageManager": "pnpm@9.15.0",
+  "scripts": {
+    "db:start": "supabase start",
+    "db:reset": "supabase db reset",
+    "db:test": "supabase test db && bash scripts/db/concurrency-test.sh postgresql://postgres:postgres@127.0.0.1:54322/postgres",
+    "db:test:nodocker": "bash scripts/db/test-local.sh",
+    "db:explain": "bash scripts/db/explain-hot-paths.sh",
+    "db:types": "supabase gen types typescript --local --schema public > packages/shared/src/database.types.ts"
+  }
+}
