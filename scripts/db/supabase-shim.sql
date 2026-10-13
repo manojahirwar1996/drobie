@@ -86,3 +86,6 @@ grant execute on function auth.jwt(), auth.uid(), auth.role() to anon, authentic
 do $$ begin
   execute format('alter database %I set search_path = "$user", public, extensions', current_database());
 end $$;
+
+-- PostgREST connects as authenticator (local tests only)
+alter role authenticator with login password 'authenticator-local';

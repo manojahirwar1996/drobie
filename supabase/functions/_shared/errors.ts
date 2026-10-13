@@ -45,7 +45,9 @@ export class DbError extends Error {
  */
 export function fromDbError(e: DbError): HttpError {
   const hint = e.hint ?? "";
-  if (hint.startsWith("limit_reached")) return new HttpError(403, "limit_reached", e.message, { limit: hint.split(":")[1] });
+  if (hint.startsWith("limit_reached")) {
+    return new HttpError(403, "limit_reached", e.message, { limit: hint.split(":")[1] });
+  }
   if (hint === "insufficient_balance") return new HttpError(402, "upgrade_required", "not enough credits");
   if (hint === "stale_consent_version") return new HttpError(409, "conflict", e.message);
   switch (e.pgCode) {

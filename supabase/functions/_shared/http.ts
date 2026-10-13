@@ -125,7 +125,9 @@ export function defineHandler(
     let errCode: string | undefined;
     try {
       if (!opts.methods.includes(req.method)) {
-        throw new HttpError(405, "bad_request", `method ${req.method} not allowed`, undefined, { allow: opts.methods.join(", ") });
+        throw new HttpError(405, "bad_request", `method ${req.method} not allowed`, undefined, {
+          allow: opts.methods.join(", "),
+        });
       }
       const out = await run(ctx);
       res = out instanceof Response ? out : respond(out.status ?? 200, { data: out.data }, out.headers);
@@ -134,7 +136,9 @@ export function defineHandler(
       if (err) {
         errCode = err.code;
         if (err.status >= 500) log.error("request failed", { error: e });
-        res = respond(err.status, { error: { code: err.code, message: err.message, ...(err.details ? { details: err.details } : {}) } }, err.headers);
+        res = respond(err.status, {
+          error: { code: err.code, message: err.message, ...(err.details ? { details: err.details } : {}) },
+        }, err.headers);
       } else {
         errCode = "internal";
         log.error("unhandled error", { error: e });

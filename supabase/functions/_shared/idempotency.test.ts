@@ -14,7 +14,9 @@ Deno.test("idempotency: new → run once, replay → stored response, mismatch �
         return { state: "new" };
       }
       if (e.hash !== a.p_request_hash) return { state: "mismatch" };
-      return e.status ? { state: "completed", response_status: e.status, response: e.response } : { state: "in_progress" };
+      return e.status
+        ? { state: "completed", response_status: e.status, response: e.response }
+        : { state: "in_progress" };
     },
     idempotency_complete: (a) => {
       const e = store.get(String(a.p_key));
@@ -38,7 +40,9 @@ Deno.test("idempotency: new → run once, replay → stored response, mismatch �
     const first = await send('{"a":1}');
     assertEquals([first.status, await first.json()], [201, { data: { created: 1 } }]);
     const replay = await send('{"a":1}');
-    assertEquals([replay.status, await replay.json(), replay.headers.get("idempotent-replayed")], [201, { data: { created: 1 } }, "true"]);
+    assertEquals([replay.status, await replay.json(), replay.headers.get("idempotent-replayed")], [201, {
+      data: { created: 1 },
+    }, "true"]);
     assertEquals(runs, 1);
     assertEquals((await send('{"a":2}')).status, 422);
     store.set("key-busy0001", { hash: "x" });

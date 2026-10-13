@@ -4,7 +4,14 @@
 import { type Db, serverRpc } from "./db.ts";
 import type { Logger } from "./log.ts";
 
-export const emit = (db: Db, type: string, aggregate: string, aggregateId: string | null, payload: Record<string, unknown> = {}, actor?: string) =>
+export const emit = (
+  db: Db,
+  type: string,
+  aggregate: string,
+  aggregateId: string | null,
+  payload: Record<string, unknown> = {},
+  actor?: string,
+) =>
   serverRpc<string>(db, "emit", {
     p_type: type,
     p_aggregate: aggregate,
@@ -67,13 +74,23 @@ export async function consumeBatch<T>(
       if (m.read_ct >= maxAttempts) {
         await serverRpc(db, "queue_send", {
           p_queue: "dead_letter",
-          p_message: { queue, msg_id: m.msg_id, attempts: m.read_ct, error: String((e as Error).message ?? e), message: m.message },
+          p_message: {
+            queue,
+            msg_id: m.msg_id,
+            attempts: m.read_ct,
+            error: String((e as Error).message ?? e),
+            message: m.message,
+          },
         });
         await serverRpc(db, "queue_archive", { p_queue: queue, p_msg_id: m.msg_id });
         report.deadLettered++;
         log.error("message dead-lettered", { queue, msg_id: m.msg_id, attempts: m.read_ct });
       } else {
-        await serverRpc(db, "queue_set_vt", { p_queue: queue, p_msg_id: m.msg_id, p_seconds: backoffSeconds(m.read_ct, base) });
+        await serverRpc(db, "queue_set_vt", {
+          p_queue: queue,
+          p_msg_id: m.msg_id,
+          p_seconds: backoffSeconds(m.read_ct, base),
+        });
         report.retried++;
         log.warn("message failed, will retry", { queue, msg_id: m.msg_id, attempt: m.read_ct });
       }

@@ -50,7 +50,9 @@ export async function requireActiveAdult(ctx: Ctx, user: User): Promise<AccountS
   const state = await accountState(ctx, user);
   if (!state.exists || state.deleted || state.status === "deleted") throw unauthorized("account not found");
   if (state.status !== "active") throw new HttpError(403, "account_inactive", "this account is not active");
-  if (!state.adult_confirmed) throw new HttpError(403, "adult_confirmation_required", "please confirm you are 18 or older");
+  if (!state.adult_confirmed) {
+    throw new HttpError(403, "adult_confirmation_required", "please confirm you are 18 or older");
+  }
   return state;
 }
 

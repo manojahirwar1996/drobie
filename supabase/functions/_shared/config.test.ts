@@ -24,12 +24,16 @@ Deno.test("targeting: app version, plan, experiment and rollout", () => {
   const rules: TargetRule[] = [{ when: { min_app_version: "1.2.0", plan: ["pro"] }, value: "new" }];
   assertEquals(resolveTargeting("k", "old", rules, { appVersion: "1.10.0", plan: "pro" }), "new");
   assertEquals(resolveTargeting("k", "old", rules, { appVersion: "1.1.9", plan: "pro" }), "old");
-  assertEquals(resolveTargeting("k", "a", [{ when: { experiment: { key: "paywall", variant: "b" } }, value: "b" }], {
-    experiments: { paywall: "b" },
-  }), "b");
+  assertEquals(
+    resolveTargeting("k", "a", [{ when: { experiment: { key: "paywall", variant: "b" } }, value: "b" }], {
+      experiments: { paywall: "b" },
+    }),
+    "b",
+  );
   assertEquals(compareSemver("1.10.0", "1.9.9"), 1);
   // rollout is stable per user and roughly proportional
-  const inRollout = Array.from({ length: 2000 }, (_, i) => rolloutBucket(`flag:x:user-${i}`) < 20).filter(Boolean).length;
+  const inRollout =
+    Array.from({ length: 2000 }, (_, i) => rolloutBucket(`flag:x:user-${i}`) < 20).filter(Boolean).length;
   assert(inRollout > 300 && inRollout < 500, `20% rollout gave ${inRollout}/2000`);
   assertEquals(rolloutBucket("flag:x:u1"), rolloutBucket("flag:x:u1"));
 });
@@ -72,7 +76,10 @@ Deno.test("cache: refreshes only when the config version changes; rollback is pi
 });
 
 Deno.test("flags: enabled + percentage rollout", async () => {
-  const db = snapshotDb({ version: 1, values: { "flag:try_on": { value: { enabled: true, rollout_pct: 0 }, targeting: [] } } });
+  const db = snapshotDb({
+    version: 1,
+    values: { "flag:try_on": { value: { enabled: true, rollout_pct: 0 }, targeting: [] } },
+  });
   const c = new ConfigClient(() => db);
   assertEquals(await c.flag("flag:try_on", { userId: "u1" }), false);
 });

@@ -1,0 +1,63 @@
+name: ci
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  packages:
+    name: Node packages (lint, typecheck)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile=false
+      - run: pnpm exec turbo run lint typecheck
+      - run: pnpm exec prettier --check .
+
+  functions:
+    name: Edge Functions + shared (Deno fmt, lint, check, unit tests)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with: { deno-version: v2.x }
+      - run: deno fmt --check --config supabase/functions/deno.json supabase/functions packages/shared/src packages/rules/src
+      - run: deno lint --config supabase/functions/deno.json supabase/functions packages/shared/src packages/rules/src
+      - run: deno check --config supabase/functions/deno.json supabase/functions/*/index.ts
+      - run: deno test --config supabase/functions/deno.json --allow-env --allow-net --allow-read supabase/functions packages/shared/src
+
+  database:
+    name: Database (migrations, pgTAP, concurrency) + end-to-end
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with: { version: latest }
+      - uses: denoland/setup-deno@v2
+        with: { deno-version: v2.x }
+      - run: supabase start -x studio,imgproxy,inbucket,edge-runtime,logflare,vector,supavisor
+      - run: supabase db reset
+      - run: supabase test db
+      - run: bash scripts/db/concurrency-test.sh postgresql://postgres:postgres@127.0.0.1:54322/postgres
+      - name: End-to-end (functions → PostgREST → Postgres with RLS)
+        run: |
+          eval "$(supabase status -o env | sed 's/^/export /')"
+          E2E=1 SUPABASE_URL="$API_URL" SUPABASE_ANON_KEY="$ANON_KEY" SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY" \
+          SUPABASE_JWT_SECRET="$JWT_SECRET" E2E_DB="postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
+          deno test --config supabase/functions/deno.json --allow-env --allow-net --allow-read --allow-run supabase/functions/tests/
+      - name: Migrations must not be edited after merge
+        if: github.event_name == 'pull_request'
+        run: |
+          git fetch origin "${{ github.base_ref }}" --depth=1
+          changed=$(git diff --name-only --diff-filter=MD "origin/${{ github.base_ref }}" -- supabase/migrations || true)
+          if [ -n "$changed" ]; then echo "Edited or deleted existing migrations:"; echo "$changed"; exit 1; fi

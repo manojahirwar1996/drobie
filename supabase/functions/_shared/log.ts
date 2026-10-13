@@ -57,15 +57,26 @@ export interface Logger {
 }
 
 export type LogSink = (line: string, level: Level) => void;
+// The one place allowed to write to the console: stdout/stderr is what the
+// Supabase log drain collects.
 const defaultSink: LogSink = (line, level) => {
+  // deno-lint-ignore no-console
   if (level === "error") console.error(line);
+  // deno-lint-ignore no-console
   else if (level === "warn") console.warn(line);
+  // deno-lint-ignore no-console
   else console.log(line);
 };
 
 export function createLogger(base: LogFields = {}, sink: LogSink = defaultSink): Logger {
   const write = (level: Level, msg: string, fields?: LogFields) => {
-    const record = { ts: new Date().toISOString(), level, msg, ...base, ...(fields ? (scrub(fields) as LogFields) : {}) };
+    const record = {
+      ts: new Date().toISOString(),
+      level,
+      msg,
+      ...base,
+      ...(fields ? (scrub(fields) as LogFields) : {}),
+    };
     sink(JSON.stringify(record), level);
   };
   return {

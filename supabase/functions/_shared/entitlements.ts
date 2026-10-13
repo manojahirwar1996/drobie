@@ -38,7 +38,11 @@ export async function limit(db: Db, userId: string, featureKey: string): Promise
 
 /** Atomically use quota; throws 429 quota_exceeded / 403 upgrade_required. */
 export async function consume(db: Db, userId: string, featureKey: string, amount = 1): Promise<QuotaResult> {
-  const r = await serverRpc<QuotaResult>(db, "consume_quota", { p_user: userId, p_feature_key: featureKey, p_amount: amount });
+  const r = await serverRpc<QuotaResult>(db, "consume_quota", {
+    p_user: userId,
+    p_feature_key: featureKey,
+    p_amount: amount,
+  });
   if (r.ok) return r;
   if (r.reason === "not_enabled") {
     throw new HttpError(403, "upgrade_required", "this feature is not included in your plan", { feature: featureKey });

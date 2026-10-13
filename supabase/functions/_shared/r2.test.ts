@@ -14,7 +14,10 @@ Deno.test("SigV4 presign matches the AWS documented test vector", async () => {
     expiresSeconds: 86400,
     now: new Date("2013-05-24T00:00:00Z"),
   });
-  assertEquals(new URL(url).searchParams.get("X-Amz-Signature"), "aeeed9bbccd4d02ee5c0109b86d86835f995330da4c265957d157751f604d404");
+  assertEquals(
+    new URL(url).searchParams.get("X-Amz-Signature"),
+    "aeeed9bbccd4d02ee5c0109b86d86835f995330da4c265957d157751f604d404",
+  );
 });
 
 const U = "0192a3b4-c5d6-7e8f-9a0b-1c2d3e4f5a6b";
@@ -27,7 +30,12 @@ Deno.test("object keys are always under the owner's prefix and contain no names"
 });
 
 Deno.test("presignR2 refuses keys owned by someone else", async () => {
-  const restore = setEnv({ R2_ACCOUNT_ID: "acct", R2_BUCKET: "drobie-media", R2_ACCESS_KEY_ID: "k", R2_SECRET_ACCESS_KEY: "s" });
+  const restore = setEnv({
+    R2_ACCOUNT_ID: "acct",
+    R2_BUCKET: "drobie-media",
+    R2_ACCESS_KEY_ID: "k",
+    R2_SECRET_ACCESS_KEY: "s",
+  });
   try {
     const other = "0192a3b4-c5d6-7e8f-9a0b-bbbbbbbbbbbb";
     await assertRejects(() => presignR2("GET", other, `u/${U}/item_photo/${M}/thumb.webp`, 3600));

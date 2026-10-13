@@ -11,7 +11,11 @@ export type Filter = Record<string, string>;
 export interface Db {
   rpc<T>(fn: string, args?: Record<string, unknown>, opts?: { schema?: string }): Promise<T>;
   select<T>(table: string, query: Filter, opts?: { schema?: string; single?: boolean }): Promise<T>;
-  insert<T>(table: string, rows: unknown, opts?: { schema?: string; returning?: boolean; upsertOn?: string }): Promise<T>;
+  insert<T>(
+    table: string,
+    rows: unknown,
+    opts?: { schema?: string; returning?: boolean; upsertOn?: string },
+  ): Promise<T>;
   update<T>(table: string, filter: Filter, patch: Record<string, unknown>, opts?: { schema?: string }): Promise<T>;
 }
 
@@ -38,7 +42,13 @@ export function createDb(bearer: string, apikey: string, fetcher: FetchLike = fe
       try {
         body = JSON.parse(text);
       } catch { /* non-JSON error page */ }
-      throw new DbError(res.status, body.code, body.message ?? `database error ${res.status}`, body.hint ?? undefined, body.details);
+      throw new DbError(
+        res.status,
+        body.code,
+        body.message ?? `database error ${res.status}`,
+        body.hint ?? undefined,
+        body.details,
+      );
     }
     return (text ? JSON.parse(text) : null) as T;
   }
@@ -55,7 +65,10 @@ export function createDb(bearer: string, apikey: string, fetcher: FetchLike = fe
     select<T>(table: string, query: Filter, opts: { schema?: string; single?: boolean } = {}) {
       const h = headers(opts.schema ?? "public", false);
       if (opts.single) h.accept = "application/vnd.pgrst.object+json";
-      return call<T>(`${base}/${encodeURIComponent(table)}?${new URLSearchParams(query)}`, { method: "GET", headers: h });
+      return call<T>(`${base}/${encodeURIComponent(table)}?${new URLSearchParams(query)}`, {
+        method: "GET",
+        headers: h,
+      });
     },
     insert<T>(table: string, rows: unknown, opts: { schema?: string; returning?: boolean; upsertOn?: string } = {}) {
       const h = headers(opts.schema ?? "public", true);
@@ -63,7 +76,11 @@ export function createDb(bearer: string, apikey: string, fetcher: FetchLike = fe
       if (opts.upsertOn) prefer.push("resolution=merge-duplicates");
       h.prefer = prefer.join(",");
       const qs = opts.upsertOn ? `?on_conflict=${encodeURIComponent(opts.upsertOn)}` : "";
-      return call<T>(`${base}/${encodeURIComponent(table)}${qs}`, { method: "POST", headers: h, body: JSON.stringify(rows as Json) });
+      return call<T>(`${base}/${encodeURIComponent(table)}${qs}`, {
+        method: "POST",
+        headers: h,
+        body: JSON.stringify(rows as Json),
+      });
     },
     update<T>(table: string, filter: Filter, patch: Record<string, unknown>, opts: { schema?: string } = {}) {
       if (Object.keys(filter).length === 0) throw new Error("refusing an unfiltered update");
@@ -84,4 +101,5 @@ export const userDb = (accessToken: string, fetcher?: FetchLike) => createDb(acc
 export const serviceDb = (fetcher?: FetchLike) => createDb(serviceRoleKey(), serviceRoleKey(), fetcher);
 
 /** Shorthand for service-only server API calls. */
-export const serverRpc = <T>(db: Db, fn: string, args: Record<string, unknown> = {}) => db.rpc<T>(fn, args, { schema: "server" });
+export const serverRpc = <T>(db: Db, fn: string, args: Record<string, unknown> = {}) =>
+  db.rpc<T>(fn, args, { schema: "server" });

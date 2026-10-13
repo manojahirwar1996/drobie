@@ -45,11 +45,18 @@ async function jwks(): Promise<Jwk[]> {
   return jwksCache.keys;
 }
 
-async function verifySignature(alg: string, kid: string | undefined, data: Uint8Array<ArrayBuffer>, sig: Uint8Array<ArrayBuffer>): Promise<boolean> {
+async function verifySignature(
+  alg: string,
+  kid: string | undefined,
+  data: Uint8Array<ArrayBuffer>,
+  sig: Uint8Array<ArrayBuffer>,
+): Promise<boolean> {
   if (alg === "HS256") {
     const secret = envOptional("SUPABASE_JWT_SECRET");
     if (!secret) return false;
-    const key = await crypto.subtle.importKey("raw", enc.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["verify"]);
+    const key = await crypto.subtle.importKey("raw", enc.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, [
+      "verify",
+    ]);
     return crypto.subtle.verify("HMAC", key, sig, data);
   }
   const jwk = (await jwks()).find((k) => (kid ? k.kid === kid : true) && (k.alg ? k.alg === alg : true));
@@ -59,7 +66,9 @@ async function verifySignature(alg: string, kid: string | undefined, data: Uint8
     return crypto.subtle.verify({ name: "ECDSA", hash: "SHA-256" }, key, sig, data);
   }
   if (alg === "RS256") {
-    const key = await crypto.subtle.importKey("jwk", jwk, { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }, false, ["verify"]);
+    const key = await crypto.subtle.importKey("jwk", jwk, { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }, false, [
+      "verify",
+    ]);
     return crypto.subtle.verify("RSASSA-PKCS1-v1_5", key, sig, data);
   }
   return false;
@@ -90,7 +99,9 @@ export async function verifyJwt(token: string, now = Date.now() / 1000): Promise
 export async function signHs256(claims: JwtClaims, secret: string): Promise<string> {
   const h = b64urlEncode(JSON.stringify({ alg: "HS256", typ: "JWT" }));
   const p = b64urlEncode(JSON.stringify(claims));
-  const key = await crypto.subtle.importKey("raw", enc.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const key = await crypto.subtle.importKey("raw", enc.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, [
+    "sign",
+  ]);
   const sig = new Uint8Array(await crypto.subtle.sign("HMAC", key, enc.encode(`${h}.${p}`)));
   return `${h}.${p}.${b64urlEncode(sig)}`;
 }

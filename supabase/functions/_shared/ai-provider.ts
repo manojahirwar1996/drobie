@@ -114,7 +114,9 @@ export async function chat(deps: AiDeps, req: ChatRequest): Promise<ChatResult> 
     // Prompt caching: fixed system prompt and tool definitions first, marked cacheable.
     system: [{ type: "text", text: req.system, cache_control: { type: "ephemeral" } }],
     // the last tool definition closes the cached prefix
-    ...(tools.length ? { tools: tools.map((t, i) => (i === tools.length - 1 ? { ...t, cache_control: { type: "ephemeral" } } : t)) } : {}),
+    ...(tools.length
+      ? { tools: tools.map((t, i) => (i === tools.length - 1 ? { ...t, cache_control: { type: "ephemeral" } } : t)) }
+      : {}),
     messages: req.messages,
   };
 
@@ -125,7 +127,11 @@ export async function chat(deps: AiDeps, req: ChatRequest): Promise<ChatResult> 
     try {
       res = await fetcher("https://api.anthropic.com/v1/messages", {
         method: "POST",
-        headers: { "x-api-key": env("ANTHROPIC_API_KEY"), "anthropic-version": "2023-06-01", "content-type": "application/json" },
+        headers: {
+          "x-api-key": env("ANTHROPIC_API_KEY"),
+          "anthropic-version": "2023-06-01",
+          "content-type": "application/json",
+        },
         body: JSON.stringify(body),
         signal: AbortSignal.timeout(30_000),
       });
@@ -169,7 +175,15 @@ export async function chat(deps: AiDeps, req: ChatRequest): Promise<ChatResult> 
   };
 }
 
-async function logUsage(deps: AiDeps, req: ChatRequest, model: string, u: Usage, cost: number, latencyMs: number, ok: boolean) {
+async function logUsage(
+  deps: AiDeps,
+  req: ChatRequest,
+  model: string,
+  u: Usage,
+  cost: number,
+  latencyMs: number,
+  ok: boolean,
+) {
   try {
     await serverRpc(deps.db, "log_ai_usage", {
       p: {
@@ -194,7 +208,22 @@ async function logUsage(deps: AiDeps, req: ChatRequest, model: string, u: Usage,
 }
 
 /** Record a step answered without paid AI (rules, cache, device…) so the paid share is measurable. */
-export const logFreeStep = (db: Db, p: { userId?: string; feature: string; step: "rules" | "cache" | "device" | "template" | "embedder"; requestId?: string }) =>
+export const logFreeStep = (
+  db: Db,
+  p: {
+    userId?: string;
+    feature: string;
+    step: "rules" | "cache" | "device" | "template" | "embedder";
+    requestId?: string;
+  },
+) =>
   serverRpc(db, "log_ai_usage", {
-    p: { user_id: p.userId ?? null, feature: p.feature, step: p.step, cost_minor: 0, ok: true, request_id: p.requestId ?? null },
+    p: {
+      user_id: p.userId ?? null,
+      feature: p.feature,
+      step: p.step,
+      cost_minor: 0,
+      ok: true,
+      request_id: p.requestId ?? null,
+    },
   });

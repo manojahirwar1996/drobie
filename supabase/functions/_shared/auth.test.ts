@@ -18,9 +18,14 @@ Deno.test("requireUser: only signed-in users with a valid subject", async () => 
   try {
     const exp = Math.floor(Date.now() / 1000) + 60;
     const h = defineHandler("who", { methods: ["GET"] }, async (ctx) => ok((await requireUser(ctx)).id));
-    const call = (auth?: string) => h(new Request("http://x", { method: "GET", headers: auth ? { authorization: auth } : {} }));
+    const call = (auth?: string) =>
+      h(new Request("http://x", { method: "GET", headers: auth ? { authorization: auth } : {} }));
     assertEquals((await call()).status, 401);
-    assertEquals((await call(`Bearer ${await signHs256({ role: "anon", exp }, SECRET)}`)).status, 401, "anon key is not a user");
+    assertEquals(
+      (await call(`Bearer ${await signHs256({ role: "anon", exp }, SECRET)}`)).status,
+      401,
+      "anon key is not a user",
+    );
     assertEquals((await call(`Bearer ${await signHs256({ role: "service_role", exp }, SECRET)}`)).status, 401);
     const id = crypto.randomUUID();
     const res = await call(`Bearer ${await signHs256({ sub: id, role: "authenticated", exp }, SECRET)}`);

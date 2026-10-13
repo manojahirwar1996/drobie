@@ -3,7 +3,11 @@ import { defineHandler, ok } from "./http.ts";
 import { DbError, HttpError } from "./errors.ts";
 import { setEnv } from "./testing.ts";
 
-const echo = defineHandler("echo", { methods: ["POST"], maxBodyBytes: 100 }, async (ctx) => ok({ got: await ctx.json() }, 201));
+const echo = defineHandler(
+  "echo",
+  { methods: ["POST"], maxBodyBytes: 100 },
+  async (ctx) => ok({ got: await ctx.json() }, 201),
+);
 
 const post = (body: string, headers: Record<string, string> = {}) =>
   new Request("http://x/echo", { method: "POST", body, headers: { "content-type": "application/json", ...headers } });
@@ -54,7 +58,11 @@ Deno.test("database errors are mapped to client-safe codes", async () => {
 });
 
 Deno.test("HttpError headers pass through (e.g. Retry-After)", async () => {
-  const h = defineHandler("rl", { methods: ["GET"] }, () => Promise.reject(new HttpError(429, "rate_limited", "slow", undefined, { "retry-after": "3" })));
+  const h = defineHandler(
+    "rl",
+    { methods: ["GET"] },
+    () => Promise.reject(new HttpError(429, "rate_limited", "slow", undefined, { "retry-after": "3" })),
+  );
   const res = await h(new Request("http://x", { method: "GET" }));
   assertEquals([res.status, res.headers.get("retry-after")], [429, "3"]);
 });
@@ -64,7 +72,9 @@ Deno.test("CORS only for our origins; other browsers' preflights are refused", a
   try {
     const pre = await echo(new Request("http://x", { method: "OPTIONS", headers: { origin: "https://drobie.app" } }));
     assertEquals([pre.status, pre.headers.get("access-control-allow-origin")], [204, "https://drobie.app"]);
-    const evil = await echo(new Request("http://x", { method: "OPTIONS", headers: { origin: "https://evil.example" } }));
+    const evil = await echo(
+      new Request("http://x", { method: "OPTIONS", headers: { origin: "https://evil.example" } }),
+    );
     assertEquals([evil.status, evil.headers.get("access-control-allow-origin")], [403, null]);
     const app = await echo(post("{}")); // mobile apps send no Origin
     assertEquals(app.status, 201);

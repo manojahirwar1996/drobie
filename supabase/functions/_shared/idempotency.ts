@@ -46,7 +46,9 @@ export async function withIdempotency(
     ctx.annotate({ idempotent_replay: true });
     return respond(begin.response_status, begin.response, { "idempotent-replayed": "true" });
   }
-  if (begin.state === "in_progress") throw new HttpError(409, "idempotency_conflict", "the same request is already being processed");
+  if (begin.state === "in_progress") {
+    throw new HttpError(409, "idempotency_conflict", "the same request is already being processed");
+  }
   if (begin.state === "mismatch") {
     throw new HttpError(422, "idempotency_conflict", "this Idempotency-Key was used for a different request");
   }
@@ -56,7 +58,12 @@ export async function withIdempotency(
     const status = result instanceof Response ? result.status : result.status ?? 200;
     if (status < 500) {
       const body = result instanceof Response ? await result.clone().json().catch(() => null) : { data: result.data };
-      await serverRpc(ctx.service(), "idempotency_complete", { p_user: userId, p_key: key, p_status: status, p_response: body });
+      await serverRpc(ctx.service(), "idempotency_complete", {
+        p_user: userId,
+        p_key: key,
+        p_status: status,
+        p_response: body,
+      });
     } else {
       await serverRpc(ctx.service(), "idempotency_release", { p_user: userId, p_key: key });
     }

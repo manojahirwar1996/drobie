@@ -25,5 +25,10 @@ export async function takeToken(ctx: Ctx, key: string, bucket: Bucket, cost = 1)
 /** Standard check for a user-facing function: one bucket per user per function, one per IP. */
 export async function limitUser(ctx: Ctx, userId: string, bucket: Bucket): Promise<void> {
   await takeToken(ctx, `u:${userId}:${ctx.fn}`, bucket);
-  if (ctx.ip) await takeToken(ctx, `ip:${ctx.ip}:${ctx.fn}`, { capacity: bucket.capacity * 5, refillPerSec: bucket.refillPerSec * 5 });
+  if (ctx.ip) {
+    await takeToken(ctx, `ip:${ctx.ip}:${ctx.fn}`, {
+      capacity: bucket.capacity * 5,
+      refillPerSec: bucket.refillPerSec * 5,
+    });
+  }
 }

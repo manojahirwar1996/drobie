@@ -25,10 +25,26 @@ Format: ID · date · decision · reason. Decisions already fixed in the specs (
 | D-017 | Supabase target Postgres 17. The suite also runs on Postgres 16 locally. | Supabase's current default; nothing used is version-specific. |
 | D-018 | Document categories never store ID numbers (closed schema: type, expiry tracked, original). | DPDP data minimisation. |
 
+## Monorepo, function library, account functions (Steps 1, 3, 4), 2026-10-13
+
+| ID | Decision | Reason |
+| --- | --- | --- |
+| D-019 | Edge Functions talk to the database through a small typed PostgREST client (`_shared/db.ts`) instead of supabase-js. | No extra dependency, smaller cold starts, and every call is explicit: `userDb` (as the user, RLS applies) vs `serviceDb` (server API only). |
+| D-020 | A `server` schema of thin SECURITY DEFINER wrappers is exposed to the Data API, usable **only** by service_role (no USAGE/EXECUTE for anon or authenticated; pgTAP and end-to-end tests prove it). | `private` must stay unexposed, but functions need its logic (quotas, ledger, config, idempotency). |
+| D-021 | Reference data (taxonomy, plans/features with placeholder prices, ledger accounts, config registry, retailers, dictionary) moved from `seed.sql` into migration `20261013000200_reference_data.sql`. `seed.sql` now holds only local test users. | `supabase db push` doesn't run the seed, so production would have had no plans or categories. |
+| D-022 | Runtime-agnostic packages (`@drobie/shared`, later `@drobie/rules`) are tested with `deno test`, the runtime the server uses. Vitest is for packages that need Node (apps). | One test runner for code shared by phone and server, with no extra dependency. |
+| D-023 | Breaking API changes ship as a new function (`me-v2`). The old one stays until `app:min_app_version` passes every client that uses it. | Supabase already puts `/functions/v1/` in every URL; apps can't be force-updated. |
+| D-024 | Config registry defaults are **safe**: if config can't be read, spend caps are 0 and money-costing flags are off. | A config outage must never turn on paid AI. |
+| D-025 | Consents must use the version currently in force (`app:consent_versions`). Withdrawing `measurements` deletes stored measurements in the same transaction. | DPDP: consent tied to the exact text; withdrawal stops the processing. |
+| D-026 | Sentry is not wired yet. Logs are structured JSON on stdout/stderr (collected by Supabase) with PII scrubbed and user ids hashed. Sentry is added in Step 14. | The SDK is a dependency; logging is already enough to debug from. |
+| D-027 | JWTs are verified inside functions as well as at the gateway: HS256 (legacy secret) or ES256/RS256 through JWKS. Uses WebCrypto only. | Defence in depth; ready for Supabase's asymmetric signing keys. |
+| D-028 | Node dev-dependency versions in `package.json` (turbo, eslint, typescript-eslint, prettier, typescript) were chosen while the npm registry was unreachable from the build session. The first `pnpm install` creates the lockfile and confirms them. | Deno code and tests were fully verified with the same library versions (Zod 3.25.76, @std/assert 1.0.19). |
+
 ## Open questions (need a founder decision)
 
 1. **Free plan item limit:** the FRS says "Up to 100 items" (§2 users table) and also "Free 40" (§6 limits table). The seed uses 40. It's one row in `plan_features`.
 2. **Ledger on account deletion:** tax law requires keeping financial records, but wallet accounts reference the user. Proposal for Step 13: keep the ledger and detach or anonymise the wallet owner on purge.
 3. **Kill switches and four-eyes:** keep approval on `dro_ai` and similar, or allow one admin to switch *off* (never on) instantly?
 4. **GST SAC codes** for subscriptions and credit packs: confirm with the CA before the first web invoice.
-5. **Retailer return windows** in the seed are starting values; verify against each retailer's current policy.
+5. **Retailer return windows** in the reference data are starting values; verify against each retailer's current policy.
+6. **AI model prices** (`app:ai.model_prices`) are empty until set in the admin panel. Until then, paid calls are logged with cost 0 and a warning. Enter the current Anthropic prices (in paise per million tokens) before turning on `flag:dro_ai` in production.

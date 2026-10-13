@@ -1,6 +1,6 @@
 # drobie database: Step 2 foundation
 
-The MVP database, built on the platform seams in `PLATFORM_ARCHITECTURE.md` (households, one media system, plans as data, a double-entry ledger, access grants, an outbox, currencies). 64 tables: 51 client-facing in `public` (all under RLS), 12 internal in `private`, plus `audit.log`. Only "Now" and "Seam" tables exist. "Later" tables arrive with additive migrations.
+The MVP database (167 pgTAP tests), built on the platform seams in `PLATFORM_ARCHITECTURE.md` (households, one media system, plans as data, a double-entry ledger, access grants, an outbox, currencies). 64 tables: 51 client-facing in `public` (all under RLS), 12 internal in `private`, plus `audit.log`. Only "Now" and "Seam" tables exist. "Later" tables arrive with additive migrations.
 
 ## Run it
 
@@ -26,6 +26,8 @@ Local test users (password `drobie-local-123`): `alice@drobie.test` (Ultimate, 2
 | `0700_notifications_config_ops` | audit.log, notifications (partitioned), notification_preferences, versioned config (`config_keys`, `config_versions`, publish/approve/rollback/bundle), webhook_events, idempotency_keys, rate_limits, ai_usage (partitioned), deletion_requests, data_exports, synonyms, unmapped_terms, audit triggers, pg_cron jobs |
 | `0800_signup_account` | signup bootstrap trigger, `confirm_adult()`, `is_active_adult()` |
 | `0900_rls_and_grants` | privileges and every RLS policy |
+| `1000_server_api` (2026-10-13) | `server` schema: service-role-only wrappers for Edge Functions (account state, entitlements/quotas, config snapshot/bundle, consents, rate limits, idempotency, webhooks, outbox, queues + dead letter, AI usage) |
+| `1001_reference_data` (2026-10-13) | taxonomy, plans/features, tax, ledger accounts, config registry, retailers, brands, dictionary (moved from seed.sql) |
 
 ## Core ERD
 

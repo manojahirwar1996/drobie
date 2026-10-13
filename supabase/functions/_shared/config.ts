@@ -11,24 +11,49 @@ const flagSchema = z.object({ enabled: z.boolean(), rollout_pct: z.number().int(
 const semver = z.string().regex(/^\d+\.\d+\.\d+$/);
 
 export const registry = {
-  "app:min_app_version": { schema: z.object({ ios: semver, android: semver, message: z.string().optional() }), default: { ios: "1.0.0", android: "1.0.0" } },
-  "app:maintenance": { schema: z.object({ enabled: z.boolean(), message: z.string().optional() }), default: { enabled: false } },
+  "app:min_app_version": {
+    schema: z.object({ ios: semver, android: semver, message: z.string().optional() }),
+    default: { ios: "1.0.0", android: "1.0.0" },
+  },
+  "app:maintenance": {
+    schema: z.object({ enabled: z.boolean(), message: z.string().optional() }),
+    default: { enabled: false },
+  },
   "app:consent_versions": { schema: z.record(z.string()), default: { terms: "1.0", privacy: "1.0" } },
   "app:ai.daily_spend_cap_minor": { schema: z.number().int().min(0), default: 0 },
-  "app:ai.user_daily_budget_minor": { schema: z.record(z.number().int().min(0)), default: {} as Record<string, number> },
+  "app:ai.user_daily_budget_minor": {
+    schema: z.record(z.number().int().min(0)),
+    default: {} as Record<string, number>,
+  },
   "app:ai.tag_confidence_threshold": { schema: z.number().min(0).max(1), default: 0.6 },
   "app:ai.model_prices": {
-    schema: z.record(z.object({ input: z.number(), output: z.number(), cache_read: z.number().optional(), cache_write: z.number().optional() })),
+    schema: z.record(
+      z.object({
+        input: z.number(),
+        output: z.number(),
+        cache_read: z.number().optional(),
+        cache_write: z.number().optional(),
+      }),
+    ),
     default: {} as Record<string, { input: number; output: number; cache_read?: number; cache_write?: number }>,
   },
-  "app:credits.free_looks": { schema: z.object({ amount: z.number().int(), min_items: z.number().int() }), default: { amount: 0, min_items: 30 } },
+  "app:credits.free_looks": {
+    schema: z.object({ amount: z.number().int(), min_items: z.number().int() }),
+    default: { amount: 0, min_items: 30 },
+  },
   "app:credits.web_bonus_pct": { schema: z.number().int().min(0).max(100), default: 0 },
   "app:founding.offer": {
     schema: z.object({ enabled: z.boolean(), max_users: z.number().int(), pro_months: z.number().int().optional() }),
     default: { enabled: false, max_users: 0 },
   },
-  "limit:upload.max_bytes": { schema: z.record(z.number().int().positive()), default: { master: 614400, display: 204800, thumb: 61440 } },
-  "limit:rate.default": { schema: z.object({ capacity: z.number().positive(), refill_per_sec: z.number().positive() }), default: { capacity: 60, refill_per_sec: 1 } },
+  "limit:upload.max_bytes": {
+    schema: z.record(z.number().int().positive()),
+    default: { master: 614400, display: 204800, thumb: 61440 },
+  },
+  "limit:rate.default": {
+    schema: z.object({ capacity: z.number().positive(), refill_per_sec: z.number().positive() }),
+    default: { capacity: 60, refill_per_sec: 1 },
+  },
   "flag:dro_ai": { schema: flagSchema, default: { enabled: false } },
   "flag:email_import": { schema: flagSchema, default: { enabled: false } },
   "flag:generate_look": { schema: flagSchema, default: { enabled: false } },
@@ -36,7 +61,12 @@ export const registry = {
   "copy:paywall.title": { schema: z.string().min(1), default: "Go further with drobie" },
   "copy:paywall.subtitle": { schema: z.string(), default: "" },
   "ai_route:dro.chat": {
-    schema: z.object({ provider: z.literal("anthropic"), model: z.string().min(3), max_tokens: z.number().int(), temperature: z.number().optional() }),
+    schema: z.object({
+      provider: z.literal("anthropic"),
+      model: z.string().min(3),
+      max_tokens: z.number().int(),
+      temperature: z.number().optional(),
+    }),
     default: { provider: "anthropic" as const, model: "claude-haiku-5-5", max_tokens: 400 },
   },
 } as const;
@@ -102,7 +132,10 @@ export function rolloutBucket(seed: string): number {
 function matches(rule: TargetRule, key: string, ctx: TargetCtx): boolean {
   const w = rule.when;
   const inList = (list: string[] | undefined, v: string | undefined) => !list || (v !== undefined && list.includes(v));
-  if (!inList(w.country, ctx.country) || !inList(w.city, ctx.city) || !inList(w.platform, ctx.platform) || !inList(w.plan, ctx.plan)) {
+  if (
+    !inList(w.country, ctx.country) || !inList(w.city, ctx.city) || !inList(w.platform, ctx.platform) ||
+    !inList(w.plan, ctx.plan)
+  ) {
     return false;
   }
   if (w.segment && !w.segment.some((s) => ctx.segments?.includes(s))) return false;

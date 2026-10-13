@@ -1,5 +1,12 @@
 import { assert, assertEquals } from "@std/assert";
-import { accessGrantInsert, consentInput, itemInsert, itemUpdate, setConsentsRequest, wearLogInsert } from "./schemas.ts";
+import {
+  accessGrantInsert,
+  consentInput,
+  itemInsert,
+  itemUpdate,
+  setConsentsRequest,
+  wearLogInsert,
+} from "./schemas.ts";
 import { CONSENT_TYPES, GRANT_SCOPES, ITEM_STATES, PLACE_KINDS } from "./enums.ts";
 
 const migrationsDir = new URL("../../../supabase/migrations/", import.meta.url);
@@ -61,7 +68,12 @@ Deno.test("access grant rules mirror the database checks", () => {
     "support grants must expire",
   );
   assertEquals(
-    accessGrantInsert.safeParse({ grantee_user_id: id, grantee_household_id: id, scope: "item_read", purpose: "family" })
+    accessGrantInsert.safeParse({
+      grantee_user_id: id,
+      grantee_household_id: id,
+      scope: "item_read",
+      purpose: "family",
+    })
       .success,
     false,
   );

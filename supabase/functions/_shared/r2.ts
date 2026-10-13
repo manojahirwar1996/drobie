@@ -14,7 +14,10 @@ async function hmac(key: ArrayBuffer | Uint8Array<ArrayBuffer>, data: string): P
 
 /** RFC 3986 encoding as S3 expects (keep `/` in paths). */
 export const s3Encode = (s: string, keepSlash = false) =>
-  encodeURIComponent(s).replace(/[!'()*]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`).replace(keepSlash ? /%2F/g : /$^/, "/");
+  encodeURIComponent(s).replace(/[!'()*]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`).replace(
+    keepSlash ? /%2F/g : /$^/,
+    "/",
+  );
 
 export interface PresignInput {
   method: "GET" | "PUT";
@@ -52,7 +55,14 @@ export async function presign(i: PresignInput): Promise<string> {
   };
   const canonicalQuery = Object.keys(q).sort().map((k) => `${s3Encode(k)}=${s3Encode(q[k] as string)}`).join("&");
   const canonicalHeaders = Object.keys(headers).sort().map((k) => `${k}:${headers[k]}\n`).join("");
-  const canonicalRequest = [i.method, s3Encode(i.path, true), canonicalQuery, canonicalHeaders, signedHeaders, "UNSIGNED-PAYLOAD"].join("\n");
+  const canonicalRequest = [
+    i.method,
+    s3Encode(i.path, true),
+    canonicalQuery,
+    canonicalHeaders,
+    signedHeaders,
+    "UNSIGNED-PAYLOAD",
+  ].join("\n");
   const stringToSign = ["AWS4-HMAC-SHA256", amzDate, scope, await sha256(canonicalRequest)].join("\n");
 
   let key: ArrayBuffer = await hmac(enc.encode(`AWS4${i.secretAccessKey}`), day);
@@ -72,7 +82,13 @@ export function userObjectKey(userId: string, purpose: string, mediaId: string, 
 }
 
 /** Presign against R2 for an object that must belong to `ownerId`. */
-export async function presignR2(method: "GET" | "PUT", ownerId: string, key: string, expiresSeconds: number, contentType?: string) {
+export async function presignR2(
+  method: "GET" | "PUT",
+  ownerId: string,
+  key: string,
+  expiresSeconds: number,
+  contentType?: string,
+) {
   const m = KEY_RE.exec(key);
   if (!m || m[1] !== ownerId) throw badRequest("object does not belong to this user");
   return await presign({

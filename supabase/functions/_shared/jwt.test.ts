@@ -21,7 +21,9 @@ Deno.test("HS256: tampered, expired, wrong-secret and alg=none tokens are reject
   try {
     const good = await signHs256({ sub: "u1", role: "authenticated", exp: now() + 60 }, SECRET);
     const [h, , s] = good.split(".");
-    const tampered = `${h}.${b64urlEncode(JSON.stringify({ sub: "admin", role: "service_role", exp: now() + 60 }))}.${s}`;
+    const tampered = `${h}.${
+      b64urlEncode(JSON.stringify({ sub: "admin", role: "service_role", exp: now() + 60 }))
+    }.${s}`;
     await assertRejects(() => verifyJwt(tampered), HttpError);
     const expired = await signHs256({ sub: "u1", exp: now() - 1 }, SECRET);
     await assertRejects(() => verifyJwt(expired), HttpError, "expired");
@@ -45,10 +47,17 @@ Deno.test("ES256 via JWKS (new Supabase signing keys)", async () => {
     const h = b64urlEncode(JSON.stringify({ alg: "ES256", kid: "k1", typ: "JWT" }));
     const p = b64urlEncode(JSON.stringify({ sub: "u2", role: "authenticated", exp: now() + 60 }));
     const sig = new Uint8Array(
-      await crypto.subtle.sign({ name: "ECDSA", hash: "SHA-256" }, pair.privateKey, new TextEncoder().encode(`${h}.${p}`)),
+      await crypto.subtle.sign(
+        { name: "ECDSA", hash: "SHA-256" },
+        pair.privateKey,
+        new TextEncoder().encode(`${h}.${p}`),
+      ),
     );
     assertEquals((await verifyJwt(`${h}.${p}.${b64urlEncode(sig)}`)).sub, "u2");
-    await assertRejects(() => verifyJwt(`${h}.${b64urlEncode(JSON.stringify({ sub: "x", exp: now() + 60 }))}.${b64urlEncode(sig)}`), HttpError);
+    await assertRejects(
+      () => verifyJwt(`${h}.${b64urlEncode(JSON.stringify({ sub: "x", exp: now() + 60 }))}.${b64urlEncode(sig)}`),
+      HttpError,
+    );
   } finally {
     globalThis.fetch = realFetch;
     restore();

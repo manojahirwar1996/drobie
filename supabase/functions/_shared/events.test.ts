@@ -23,10 +23,16 @@ Deno.test("consumeBatch: success deletes, failure backs off, repeated failure de
     queue_send: () => 99,
     queue_archive: () => true,
   });
-  const report = await consumeBatch<{ n: number }>(db, "search", (m) => {
-    if (m.message.n !== 1) throw new Error("boom");
-    return Promise.resolve();
-  }, silent, { maxAttempts: 5, backoffSeconds: 30 });
+  const report = await consumeBatch<{ n: number }>(
+    db,
+    "search",
+    (m) => {
+      if (m.message.n !== 1) throw new Error("boom");
+      return Promise.resolve();
+    },
+    silent,
+    { maxAttempts: 5, backoffSeconds: 30 },
+  );
   assertEquals(report, { processed: 1, retried: 1, deadLettered: 1 });
   const byFn = (fn: string) => db.calls.filter((c) => c.fn === fn).map((c) => c.args);
   assertEquals(byFn("queue_delete"), [{ p_queue: "search", p_msg_id: 1 }]);
